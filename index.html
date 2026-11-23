@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plataforma de Mapeamento Urbano — Palhoça/SC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- LOGIN -->
+  <section id="view-login" class="view active">
+    <div class="login-shell">
+      <div class="login-brand">
+        <div class="brand-badge">PI • AV2</div>
+        <h1>Plataforma de Mapeamento<br><span>e Visualização de Dados Urbanos</span></h1>
+        <p>Palhoça/SC — Saúde, Educação e Segurança em um só lugar.</p>
+        <div class="brand-stats">
+          <div><strong id="stat-bairros">40</strong><span>Bairros</span></div>
+          <div><strong id="stat-pontos">22</strong><span>Pontos reais</span></div>
+          <div><strong>3</strong><span>Setores</span></div>
+        </div>
+      </div>
+      <div class="login-card card">
+        <h2>Acesso ao sistema</h2>
+        <p class="muted">Entre com suas credenciais para gerenciar os dados urbanos.</p>
+        <label>E-mail</label>
+        <input id="login-email" type="email" value="admin@palhoca.sc.gov.br" autocomplete="username">
+        <label>Senha</label>
+        <input id="login-senha" type="password" value="admin" autocomplete="current-password">
+        <button class="btn primary" id="btn-login">Entrar no sistema</button>
+        <button class="btn ghost" id="btn-status">Testar conexão com o banco</button>
+        <p id="login-msg" class="muted small"></p>
+        <div class="login-demo muted small">
+          <strong>Demonstração:</strong> admin@palhoca.sc.gov.br / admin
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <section id="view-app" class="view">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo">PM</div>
+        <div><strong>Mapeamento Urbano</strong><span>Palhoça/SC</span></div>
+      </div>
+      <nav>
+        <button class="nav-item active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="nav-item" data-tab="mapa">🗺 Mapa</button>
+        <button class="nav-item" data-tab="pontos">📍 Pontos de Interesse</button>
+        <button class="nav-item" data-tab="bairros">🏘 Bairros</button>
+        <button class="nav-item" data-tab="ocorrencias">🛡 Ocorrências</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div id="user-info" class="user-info"></div>
+        <button class="btn ghost small-btn" id="btn-logout">Sair</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="page-title">Dashboard</h2>
+          <p id="page-sub" class="muted">Visão geral da plataforma urbana de Palhoça.</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="db-status" class="pill">Banco: verificando...</span>
+        </div>
+      </header>
+
+      <!-- DASHBOARD -->
+      <div id="tab-dashboard" class="tab active">
+        <div class="grid stats-grid">
+          <div class="card stat-card"><span class="stat-label">Pontos cadastrados</span><strong id="d-pontos">0</strong></div>
+          <div class="card stat-card"><span class="stat-label">Bairros</span><strong id="d-bairros">0</strong></div>
+          <div class="card stat-card"><span class="stat-label">Ocorrências</span><strong id="d-ocorrencias">0</strong></div>
+          <div class="card stat-card"><span class="stat-label">Pendentes</span><strong id="d-pendentes">0</strong></div>
+        </div>
+        <div class="grid two-col">
+          <div class="card">
+            <div class="card-head"><h3>Pontos recentes</h3><button class="btn ghost small-btn" onclick="showTab('pontos')">Ver todos</button></div>
+            <div class="table-wrap"><table><thead><tr><th>Nome</th><th>Categoria</th><th>Bairro</th></tr></thead><tbody id="dash-pontos"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Ocorrências recentes</h3><button class="btn ghost small-btn" onclick="showTab('ocorrencias')">Ver todas</button></div>
+            <div class="table-wrap"><table><thead><tr><th>Evento</th><th>Bairro</th><th>Gravidade</th></tr></thead><tbody id="dash-ocorrencias"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAPA -->
+      <div id="tab-mapa" class="tab">
+        <div class="card">
+          <div class="card-head">
+            <h3>Mapa interativo de Palhoça</h3>
+            <div class="row">
+              <select id="filtro-mapa"><option value="">Tudo (pontos + ocorrências)</option><option value="SAUDE">Saúde</option><option value="EDUCACAO">Educação</option><option value="OCORRENCIA">Ocorrências</option></select>
+              <button class="btn ghost small-btn" id="btn-recarregar-mapa">Recarregar</button>
+            </div>
+          </div>
+          <p class="muted small" style="margin-top:-.5rem">Clique em um marcador para ver detalhes. Os pontos vêm direto do banco PostgreSQL.</p>
+          <div id="map" class="map-container"></div>
+          <div class="map-legend"><span><i class="dot saude"></i> Saúde</span><span><i class="dot educacao"></i> Educação</span><span><i class="dot ocorrencia"></i> Ocorrência</span></div>
+        </div>
+      </div>
+
+      <!-- PONTOS -->
+      <div id="tab-pontos" class="tab">
+        <div class="card">
+          <div class="card-head">
+            <h3>Pontos de Interesse</h3>
+            <div class="row">
+              <select id="filtro-tipo"><option value="">Todos os tipos</option><option>UBS</option><option>UPA</option><option>Hospital</option><option>Escola Municipal</option><option>Escola Estadual</option><option>Universidade</option></select>
+              <button class="btn primary" id="btn-novo-ponto">+ Novo ponto</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>ID</th><th>Nome</th><th>Categoria</th><th>Tipo</th><th>Bairro</th><th>Endereço</th><th>Coordenadas</th><th>Ações</th></tr></thead><tbody id="tbody-pontos"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- BAIRROS -->
+      <div id="tab-bairros" class="tab">
+        <div class="grid two-col">
+          <div class="card">
+            <div class="card-head"><h3>Cadastrar bairro</h3></div>
+            <label>Nome</label><input id="b-nome" placeholder="Ex.: Centro">
+            <div class="grid two-col gap"><div><label>População estimada</label><input id="b-pop" type="number" min="0" value="0"></div><div><label>Área (km²)</label><input id="b-area" type="number" min="0" step="0.01" value="1.00"></div></div>
+            <button class="btn primary" id="btn-salvar-bairro">Cadastrar bairro</button>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Bairros de Palhoça</h3><span class="pill" id="count-bairros">0</span></div>
+            <div class="table-wrap tall"><table><thead><tr><th>ID</th><th>Nome</th><th>População</th><th>Área km²</th></tr></thead><tbody id="tbody-bairros"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OCORRÊNCIAS -->
+      <div id="tab-ocorrencias" class="tab">
+        <div class="grid two-col">
+          <div class="card">
+            <div class="card-head"><h3>Registrar ocorrência</h3></div>
+            <label>Bairro</label><select id="o-bairro"></select>
+            <label>Cidadão registrante</label><select id="o-cidadao"></select>
+            <label>Tipo de evento</label><input id="o-tipo" placeholder="Ex.: Iluminação pública deficiente">
+            <label>Gravidade</label><select id="o-gravidade"><option>BAIXA</option><option>MEDIA</option><option>ALTA</option></select>
+            <div class="grid two-col gap">
+              <div><label>Latitude (para mapa)</label><input id="o-lat" type="number" step="any" value="-27.6450000"></div>
+              <div><label>Longitude (para mapa)</label><input id="o-lng" type="number" step="any" value="-48.6670000"></div>
+            </div>
+            <p class="muted small">RN02: não informe identificação de vítimas nem endereço residencial exato. Informe lat/lng para aparecer no mapa.</p>
+            <button class="btn primary" id="btn-salvar-ocorrencia">Registrar ocorrência</button>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Ocorrências por bairro</h3><div class="row"><select id="filtro-bairro-oc"></select></div></div>
+            <div class="table-wrap tall"><table><thead><tr><th>ID</th><th>Bairro</th><th>Evento</th><th>Gravidade</th><th>Status</th><th>Ação</th></tr></thead><tbody id="tbody-ocorrencias"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- MODAL PONTO -->
+  <div id="modal-ponto" class="modal hidden">
+    <div class="modal-card card">
+      <div class="card-head"><h3 id="modal-ponto-title">Novo Ponto</h3><button class="btn ghost small-btn" onclick="closeModal()">✕</button></div>
+      <input type="hidden" id="p-id">
+      <div class="grid two-col gap">
+        <div><label>Nome *</label><input id="p-nome"></div>
+        <div><label>Categoria *</label><select id="p-categoria"><option value="SAUDE">Saúde</option><option value="EDUCACAO">Educação</option></select></div>
+        <div class="span2"><label>Endereço *</label><input id="p-endereco"></div>
+        <div><label>Bairro *</label><select id="p-bairro"></select></div>
+        <div><label>Tipo *</label><select id="p-tipo"></select></div>
+        <div><label>Latitude *</label><input id="p-lat" type="number" step="any" value="-27.6500000"></div>
+        <div><label>Longitude *</label><input id="p-lng" type="number" step="any" value="-48.6700000"></div>
+        <div id="campo-saude-esp"><label>Especialidades</label><input id="p-especialidades"></div>
+        <div id="campo-saude-hor"><label>Horário</label><input id="p-horario"></div>
+        <div id="campo-edu-esfera" class="hidden"><label>Esfera</label><input id="p-esfera" value="Pública"></div>
+        <div id="campo-edu-niveis" class="hidden"><label>Níveis atendidos</label><input id="p-niveis"></div>
+        <div id="campo-saude-24h"><label class="check"><input type="checkbox" id="p-24h"> Atendimento 24h</label></div>
+        <div id="campo-edu-vagas" class="hidden"><label class="check"><input type="checkbox" id="p-vagas"> Possui vagas abertas</label></div>
+      </div>
+      <div class="row end"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" id="btn-salvar-ponto">Salvar</button></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
